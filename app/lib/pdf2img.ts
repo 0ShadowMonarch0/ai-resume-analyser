@@ -1,3 +1,7 @@
+// pdf2img.ts
+import PdfJsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+// Define the interface for the result
 export interface PdfConversionResult {
   imageUrl: string;
   file: File | null;
@@ -8,6 +12,7 @@ let pdfjsLib: any = null;
 let isLoading = false;
 let loadPromise: Promise<any> | null = null;
 
+// The missing function that needs to be in this file
 async function loadPdfJs(): Promise<any> {
   if (pdfjsLib) return pdfjsLib;
   if (loadPromise) return loadPromise;
@@ -15,8 +20,8 @@ async function loadPdfJs(): Promise<any> {
   isLoading = true;
   // @ts-expect-error - pdfjs-dist/build/pdf.mjs is not a module
   loadPromise = import("pdfjs-dist/build/pdf.mjs").then((lib) => {
-    // Set the worker source to use local file
-    lib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+    // Set the worker source. Ensure this file is in your public folder.
+    lib.GlobalWorkerOptions.workerSrc = PdfJsWorker;
     pdfjsLib = lib;
     isLoading = false;
     return lib;
@@ -25,10 +30,12 @@ async function loadPdfJs(): Promise<any> {
   return loadPromise;
 }
 
+// The main exportable function that uses loadPdfJs
 export async function convertPdfToImage(
   file: File
 ): Promise<PdfConversionResult> {
   try {
+    // This call requires loadPdfJs to be defined in this file's scope
     const lib = await loadPdfJs();
 
     const arrayBuffer = await file.arrayBuffer();
@@ -47,13 +54,17 @@ export async function convertPdfToImage(
       context.imageSmoothingQuality = "high";
     }
 
-    await page.render({ canvasContext: context!, viewport }).promise;
+    // Correctly call the render function with the 'canvas' property
+    await page.render({
+      canvasContext: context!,
+      viewport: viewport,
+      canvas: canvas,
+    }).promise;
 
     return new Promise((resolve) => {
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            // Create a File from the blob with the same name as the pdf
             const originalName = file.name.replace(/\.pdf$/i, "");
             const imageFile = new File([blob], `${originalName}.png`, {
               type: "image/png",
@@ -73,13 +84,14 @@ export async function convertPdfToImage(
         },
         "image/png",
         1.0
-      ); // Set quality to maximum (1.0)
+      );
     });
   } catch (err) {
+    console.error("Failed to convert PDF:", err);
     return {
       imageUrl: "",
       file: null,
-      error: `Failed to convert PDF: ${err}`,
+      error: `Failed to convert PDF: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
 }

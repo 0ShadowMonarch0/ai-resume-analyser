@@ -8,9 +8,9 @@ const ResumeCard = ({resume:{id,jobTitle,companyName,feedback, imagePath}}:{resu
         <div className='flex flex-col gap-2'>
         <h2 className='!text-black font-bold break-words'>
           {companyName}
-          <h3 className='text-lg break-words text-gray-500'>
+          <p className='text-lg break-words text-gray-500'>
             {jobTitle}
-          </h3>
+          </p>
         </h2>
       </div>
       <div className='flex-shrink-0'>
